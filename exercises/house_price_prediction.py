@@ -7,10 +7,11 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 import plotly.io as pio
+
 pio.templates.default = "simple_white"
 
-
 features_mean = dict()  # A dictionary that keeps the sum of every feature
+
 
 def preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None):
     """
@@ -78,7 +79,7 @@ def preprocess_data(X: pd.DataFrame, y: Optional[pd.Series] = None):
 
     X.loc[X["yr_renovated"] < 0, "yr_renovated"] = 0
 
-    X = pd.get_dummies(X, columns="zipcode")  # A categorical feature (no logical order)
+    X = pd.get_dummies(X, columns=["zipcode"])  # A categorical feature (no logical order)
 
     return X, y  # Returns the data frame and the prices vector
 
@@ -107,11 +108,12 @@ def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") ->
             continue  # No need for scatter
 
         pearson = np.cov(X[feature], y)[0, 1] / (np.std(X[feature]) * np.std(y))
-
+        print(feature)
         px.scatter(x=X[feature], y=y, trendline="ols", labels=dict(x=feature, y="Price"),
-                   title=f"Graph showing correlation between {feature} and the house price, "
-                         f"with the Pearson Correlation of {pearson}:").write_image(output_path + "/" +
-                                                                                    feature + ".png")
+                   title=f"Graph showing correlation between {feature} and the house <br> price, "
+                         f"with the Pearson Correlation of {pearson}:").show()
+            # write_image(output_path + "/" +
+            #                                                                         feature + ".png")
 
 
 if __name__ == '__main__':
@@ -141,17 +143,29 @@ if __name__ == '__main__':
 
     test_X, _ = preprocess_data(test_X)  # Not train so don't have y
 
-    mean_loss = np.empty(shape=(91, ))  # Initializes new empty array of size 91
-    std_loss = np.empty(shape=(91, ))  # Initializes new empty array of size 91
+    mean_loss = np.empty(shape=(91,))  # Initializes new empty array of size 91
+    std_loss = np.empty(shape=(91,))  # Initializes new empty array of size 91
 
     for p in range(10, 101):
-        p_loss = np.empty(shape=(10, ))  # Initializes new empty array of size 10
+        p_loss = np.empty(shape=(10,))  # Initializes new empty array of size 10
         for i in range(10):
             model = LinearRegression(True)  # Linear regression model
-            X = train_X.sample(frac=(p/100))
+            X = train_X.sample(frac=(p / 100))
             y = train_y.loc[X.index]
             model.fit(X.to_numpy(), y)
             p_loss[i] = model.loss(test_X.to_numpy(), test_y)
 
         mean_loss[p - 10] = p_loss.mean()
         std_loss[p - 10] = p_loss.std()
+
+    go.Figure([
+        go.Scatter(x=np.arange(10, 101), y=mean_loss, name="Mean Loss", mode="markers+lines"),
+        go.Scatter(x=np.arange(10, 101), y=(mean_loss - 2 * std_loss), name="Negative Error",
+                   mode="markers+lines", fill="tonexty", marker=dict(color="lightgrey", opacity=0.5),
+                   line=dict(color="lightgrey", opacity=0.5)),
+        go.Scatter(x=np.arange(10, 101), y=(mean_loss + 2 * std_loss), name="Positive Error",
+                   mode="markers+lines", fill="tonexty", marker=dict(color="lightgrey", opacity=0.5),
+                   line=dict(color="lightgrey", opacity=0.5))],
+        layout=go.Layout(title="Mean loss as a function of data percentage",
+                         xaxis={"title": "Data Percentage"},
+                         yaxis={"title": "Mean Loss"})).write_image("./ex2_graphs/mean_loss_graph.png")
