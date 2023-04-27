@@ -51,9 +51,16 @@ class UnivariateGaussian:
         Sets `self.mu_`, `self.var_` attributes according to calculated estimation (where
         estimator is either biased or unbiased). Then sets `self.fitted_` attribute to `True`
         """
-        raise NotImplementedError()
 
-        self.fitted_ = True
+        self.mu_ = np.mean(X)  # Numpy function to calculate mean of normal random variable
+
+        if not self.biased_:  # If unbiased
+            self.var_ = np.var(X, ddof=1)  # We have to divide by m-1 so we put ddof=1
+        else:
+            self.var_ = np.var(X)  # Else: anything but ddof=1
+
+        self.fitted_ = True  # After we fit the variables, flag = True
+
         return self
 
     def pdf(self, X: np.ndarray) -> np.ndarray:
@@ -74,9 +81,14 @@ class UnivariateGaussian:
         ------
         ValueError: In case function was called prior fitting the model
         """
-        if not self.fitted_:
+        if not self.fitted_:  # Because we have to fit the variables before calculating PDF
             raise ValueError("Estimator must first be fitted before calling `pdf` function")
-        raise NotImplementedError()
+
+        # Based on pdf formula for normal random variables:
+        pdf_numerator = np.exp(np.power(X-self.mu_, 2) / (-2 * self.var_))
+        pdf_denominator = np.sqrt(2 * np.pi * self.var_)
+
+        return pdf_numerator / pdf_denominator
 
     @staticmethod
     def log_likelihood(mu: float, sigma: float, X: np.ndarray) -> float:
@@ -97,8 +109,12 @@ class UnivariateGaussian:
         log_likelihood: float
             log-likelihood calculated
         """
-        raise NotImplementedError()
 
+        # Based on likelihood formula for normal random variables:
+        likelihood_numerator = np.exp((-1 / (2 * sigma)) * (np.sum(np.power(X-mu, 2))))
+        likelihood_denominator = np.power((2 * np.pi * sigma), np.size(X) / 2)
+
+        return np.log(likelihood_numerator / likelihood_denominator)
 
 class MultivariateGaussian:
     """
@@ -143,9 +159,11 @@ class MultivariateGaussian:
         Sets `self.mu_`, `self.cov_` attributes according to calculated estimation.
         Then sets `self.fitted_` attribute to `True`
         """
-        raise NotImplementedError()
 
-        self.fitted_ = True
+        self.mu_ = np.mean(X, axis=0)  # Calculates mean of each column and puts in an array
+        self.cov_ = np.cov(X, rowvar=False)  # Rowvar = False because we want by column not by row
+
+        self.fitted_ = True  # After we fit the variables, flag = True
         return self
 
     def pdf(self, X: np.ndarray):
@@ -166,9 +184,16 @@ class MultivariateGaussian:
         ------
         ValueError: In case function was called prior fitting the model
         """
-        if not self.fitted_:
+        if not self.fitted_:  # Because we have to fit the variables before calculating PDF
             raise ValueError("Estimator must first be fitted before calling `pdf` function")
-        raise NotImplementedError()
+
+        # We will play a bit with the multiplications of matrix, with their dimensions and get the formula:
+        pdf_numerator = np.exp(-1 * np.sum((((X - self.mu_) @ inv(self.cov_)) * (X - self.mu_) / 2), axis=1))
+
+        # Size of mu is the d in the formula
+        pdf_denomenator = np.sqrt(np.power((2 * np.pi), np.size(self.mu_)) * det(self.cov_))
+
+        return pdf_numerator / pdf_denomenator
 
     @staticmethod
     def log_likelihood(mu: np.ndarray, cov: np.ndarray, X: np.ndarray) -> float:
@@ -189,4 +214,14 @@ class MultivariateGaussian:
         log_likelihood: float
             log-likelihood calculated over all input data and under given parameters of Gaussian
         """
-        raise NotImplementedError()
+
+        d = np.size(mu)
+        m = np.size(X, 0)  # Number of samples
+
+        # We will calculate the log likelihood according to the formula we got in question 13 in the HW:
+        res = (-m/2) * (d * np.log((2 * np.pi)) + slogdet(cov)[1]) + \
+            np.sum((((X - mu) @ inv(cov)) * (X - mu)) / -2)
+
+        return res
+
+
