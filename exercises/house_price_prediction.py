@@ -135,3 +135,23 @@ if __name__ == '__main__':
     #   3) Test fitted model over test set
     #   4) Store average and variance of loss over test set
     # Then plot average loss as function of training size with error ribbon of size (mean-2*std, mean+2*std)
+
+    test_y = test_y.dropna()  # Removes that values that are nan
+    test_X = test_X.loc[test_y.index]  # Takes ..
+
+    test_X, _ = preprocess_data(test_X)  # Not train so don't have y
+
+    mean_loss = np.empty(shape=(91, ))  # Initializes new empty array of size 91
+    std_loss = np.empty(shape=(91, ))  # Initializes new empty array of size 91
+
+    for p in range(10, 101):
+        p_loss = np.empty(shape=(10, ))  # Initializes new empty array of size 10
+        for i in range(10):
+            model = LinearRegression(True)  # Linear regression model
+            X = train_X.sample(frac=(p/100))
+            y = train_y.loc[X.index]
+            model.fit(X.to_numpy(), y)
+            p_loss[i] = model.loss(test_X.to_numpy(), test_y)
+
+        mean_loss[p - 10] = p_loss.mean()
+        std_loss[p - 10] = p_loss.std()
