@@ -56,7 +56,6 @@ class LinearRegression(BaseEstimator):
 
         self.coefs_ = pinv(X) @ y  # X dagger times y is the coefficients vector (w)np.c_[np.ones(
 
-
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
         Predict responses for given samples using fitted estimator
